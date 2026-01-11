@@ -3,7 +3,7 @@
 # by SavageCore, forked from cdleveille's original script on Gist.
 #
 # https://github.com/SavageCore/xone-steam-deck-installer
-# Script version 0.12.4
+# Script version 0.13.0
 
 # Set xone local repo location
 XONE_LOCAL_REPO="/home/deck/repos/xone"
@@ -16,7 +16,7 @@ XPAD_NOONE_REMOTE_REPO="https://github.com/forkymcforkface/xpad-noone"
 XPAD_NOONE_VERSION="1.0"
 
 # DO NOT EDIT BELOW THIS LINE
-SCRIPT_VERSION="0.12.4"
+SCRIPT_VERSION="0.13.0"
 KEEP_READ_ONLY="false"
 REDIRECT=">/dev/null 2>&1"
 DEBUG="false"

@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.13.0
+
+ - Add an automated workaround for mismatched kernel headers. This should help people with [#1](https://github.com/SavageCore/xone-steam-deck-installer/issues/1)
+
 ### 0.12.4
 
  - Determine latest release from GitHub tags not by parsing the script
