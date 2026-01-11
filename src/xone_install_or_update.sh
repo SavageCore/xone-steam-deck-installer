@@ -71,6 +71,73 @@ compare_semver() {
     echo "0"
 }
 
+# Check for kernel header mismatch and offer workaround
+# Returns 0 if mismatch detected and user wants to fix, 1 otherwise
+check_kernel_header_mismatch() {
+    local dkms_output="$1"
+
+    # Check if the error message indicates missing kernel headers
+    if echo "$dkms_output" | grep -q "Your kernel headers for kernel .* cannot be found"; then
+        echo ""
+        echo -e "\e[1;31mError: Kernel headers mismatch detected!\e[0m"
+        echo ""
+        echo "Your running kernel does not match the installed kernel headers."
+        echo "This is a known issue on SteamOS after system updates."
+        echo ""
+        echo -e "\e[1mWorkaround:\e[0m"
+        echo "1. Upgrade the kernel package to match the headers"
+        echo "2. Reboot your Steam Deck"
+        echo "3. Re-run this installer"
+        echo ""
+
+        # Prompt user to apply the fix
+        if zenity --question --title="Kernel Headers Mismatch" \
+            --text="A kernel headers mismatch was detected.\n\nWould you like to upgrade the kernel package and reboot?\n\nAfter rebooting, please run this installer again." \
+            --ok-label="Upgrade & Reboot" --cancel-label="Cancel"; then
+
+            echo -e "\e[1mUpgrading kernel package...\e[0m"
+            echo ""
+
+            # Get the linux-neptune package name (e.g., linux-neptune-611)
+            local linux_pkg
+            linux_pkg=$(pacman -Qsq linux-neptune | grep -E "^linux-neptune-[0-9]+$" | tail -n 1)
+
+            if [ -n "$linux_pkg" ]; then
+                if [[ $DEBUG == "true" ]]; then
+                    echo "Upgrading package: $linux_pkg"
+                fi
+
+                if sudo pacman -S "$linux_pkg" --noconfirm; then
+                    echo ""
+                    echo -e "\e[1;32mKernel package upgraded successfully!\e[0m"
+                    echo ""
+                    zenity --info --title="Reboot Required" \
+                        --text="The kernel has been upgraded.\n\nYour Steam Deck will now reboot.\n\nAfter rebooting, please run this installer again."
+
+                    # Reboot the system
+                    sudo reboot
+                    exit 0
+                else
+                    echo -e "\e[1;31mFailed to upgrade kernel package.\e[0m"
+                    zenity --error --title="Error" --text="Failed to upgrade the kernel package.\n\nPlease try manually running:\nsudo pacman -S $linux_pkg"
+                fi
+            else
+                echo -e "\e[1;31mCould not determine kernel package name.\e[0m"
+                zenity --error --title="Error" --text="Could not determine the kernel package name.\n\nPlease try manually running:\nsudo pacman -S linux-neptune-611"
+            fi
+
+            return 0
+        fi
+
+        # User cancelled
+        zenity --warning --title="Installation Incomplete" \
+            --text="The driver installation cannot continue without matching kernel headers.\n\nTo fix this manually:\n1. Run: sudo pacman -S linux-neptune-611\n2. Reboot\n3. Run this installer again"
+        exit 1
+    fi
+
+    return 1
+}
+
 install_xone() {
     if [ -n "$(dkms status xone)" ]; then
         if [[ $DEBUG == "true" ]]; then
@@ -90,8 +157,30 @@ install_xone() {
     echo -e "\e[1mInstalling xone...\e[0m"
     echo ""
 
-    # Run the xone install and get-firmware scripts
-    eval sudo ./install.sh --release "$REDIRECT"
+    # Run the xone install script and capture output to check for errors
+    local install_output
+    install_output=$(sudo ./install.sh --release 2>&1)
+    local install_exit_code=$?
+
+    if [[ $DEBUG == "true" ]]; then
+        echo "$install_output"
+    fi
+
+    # Check for kernel header mismatch error
+    if check_kernel_header_mismatch "$install_output"; then
+        return 1
+    fi
+
+    # Check if installation failed for other reasons
+    if [ $install_exit_code -ne 0 ]; then
+        echo -e "\e[1;31mxone installation failed with exit code $install_exit_code\e[0m"
+        if [[ $DEBUG != "true" ]]; then
+            echo "$install_output"
+        fi
+        read -n 1 -s -r -p "Press any key to exit"
+        exit 1
+    fi
+
     echo -e "\e[1mGetting xone firmware...\e[0m"
     echo ""
     eval sudo install/firmware.sh --skip-disclaimer "$REDIRECT"
@@ -120,9 +209,32 @@ install_xpad_noone() {
     echo -e "\e[1mInstalling xpad-noone...\e[0m"
     echo ""
 
-    eval sudo modprobe -r xpad-noone 2>/dev/null || true
+    sudo modprobe -r xpad-noone 2>/dev/null || true
     eval sudo cp -r "$XPAD_NOONE_LOCAL_REPO" /usr/src/xpad-noone-$XPAD_NOONE_VERSION "$REDIRECT"
-    eval sudo dkms install -m xpad-noone -v $XPAD_NOONE_VERSION "$REDIRECT"
+
+    # Run dkms install and capture output to check for errors
+    local dkms_output
+    dkms_output=$(sudo dkms install -m xpad-noone -v $XPAD_NOONE_VERSION 2>&1)
+    local dkms_exit_code=$?
+
+    if [[ $DEBUG == "true" ]]; then
+        echo "$dkms_output"
+    fi
+
+    # Check for kernel header mismatch error
+    if check_kernel_header_mismatch "$dkms_output"; then
+        return 1
+    fi
+
+    # Check if installation failed for other reasons
+    if [ $dkms_exit_code -ne 0 ]; then
+        echo -e "\e[1;31mxpad-noone installation failed with exit code $dkms_exit_code\e[0m"
+        if [[ $DEBUG != "true" ]]; then
+            echo "$dkms_output"
+        fi
+        read -n 1 -s -r -p "Press any key to exit"
+        exit 1
+    fi
 }
 
 uninstall_xpad_noone() {
