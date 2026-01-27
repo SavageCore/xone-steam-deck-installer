@@ -131,7 +131,7 @@ check_kernel_header_mismatch() {
 
         # User cancelled
         zenity --warning --title="Installation Incomplete" \
-            --text="The driver installation cannot continue without matching kernel headers.\n\nTo fix this manually:\n1. Run: sudo pacman -S linux-neptune-611\n2. Reboot\n3. Run this installer again"
+            --text="The driver installation cannot continue without matching kernel headers.\n\nTo fix this manually:\n1. Run: sudo pacman -S $linux_pkg\n2. Reboot\n3. Run this installer again"
         exit 1
     fi
 
