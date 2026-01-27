@@ -1,9 +1,13 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/SavageCore/xone-steam-deck-installer/test.yml?style=for-the-badge&label=ShellCheck)
  ![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/SavageCore/xone-steam-deck-installer/xone_install_or_update.sh?style=for-the-badge)
 
-# Decky Plugin
-
-I've just released a Decky plugin with the same functionailty! Please see more information in the [repo](https://github.com/SavageCore/xone-decky-plugin)! 🎉🚀
+> [!IMPORTANT]
+>
+> I've released a **Decky Plugin** that provides the same functionality directly within the Steam Deck Gaming Mode/UI. 
+>
+> [**Get the Decky Plugin here!**](https://github.com/SavageCore/xone-decky-plugin) 🎉🚀
+>
+> Both this script and the plugin can be used interchangeably or alongside each other without conflict - they perform the same tasks and manage the same drivers.
 
 # Donate
 
