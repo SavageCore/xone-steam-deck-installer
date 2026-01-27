@@ -1,6 +1,9 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/SavageCore/xone-steam-deck-installer/test.yml?style=for-the-badge&label=ShellCheck)
  ![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/SavageCore/xone-steam-deck-installer/xone_install_or_update.sh?style=for-the-badge)
 
+# Decky Plugin
+
+I've just released a Decky plugin with the same functionailty! Please see more information in the [repo](https://github.com/SavageCore/xone-decky-plugin)! 🎉🚀
 
 # Donate
 
