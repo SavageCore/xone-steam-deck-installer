@@ -71,6 +71,11 @@ compare_semver() {
     echo "0"
 }
 
+# latest_neptune_pkg: echo the latest installed linux-neptune kernel package
+latest_neptune_pkg() {
+    pacman -Qsq linux-neptune | grep -E "^linux-neptune-[0-9]+$" | tail -n 1
+}
+
 # Check for kernel header mismatch and offer workaround
 # Returns 0 if mismatch detected and user wants to fix, 1 otherwise
 check_kernel_header_mismatch() {
@@ -90,6 +95,10 @@ check_kernel_header_mismatch() {
         echo "3. Re-run this installer"
         echo ""
 
+        # Get the latest installed linux-neptune package name
+        local linux_pkg
+        linux_pkg=$(latest_neptune_pkg)
+
         # Prompt user to apply the fix
         if zenity --question --title="Kernel Headers Mismatch" \
             --text="A kernel headers mismatch was detected.\n\nWould you like to upgrade the kernel package and reboot?\n\nAfter rebooting, please run this installer again." \
@@ -97,10 +106,6 @@ check_kernel_header_mismatch() {
 
             echo -e "\e[1mUpgrading kernel package...\e[0m"
             echo ""
-
-            # Get the linux-neptune package name (e.g., linux-neptune-611)
-            local linux_pkg
-            linux_pkg=$(pacman -Qsq linux-neptune | grep -E "^linux-neptune-[0-9]+$" | tail -n 1)
 
             if [ -n "$linux_pkg" ]; then
                 if [[ $DEBUG == "true" ]]; then
@@ -123,7 +128,7 @@ check_kernel_header_mismatch() {
                 fi
             else
                 echo -e "\e[1;31mCould not determine kernel package name.\e[0m"
-                zenity --error --title="Error" --text="Could not determine the kernel package name.\n\nPlease try manually running:\nsudo pacman -S linux-neptune-611"
+                zenity --error --title="Error" --text="Could not determine the kernel package name.\n\nPlease try manually:\n1. Run: uname -r\n2. Run: pacman -Ss linux-neptune\n3. Install the linux-neptune package matching your kernel version, e.g.:\n   sudo pacman -S linux-neptune-<version>"
             fi
 
             return 0
@@ -250,7 +255,7 @@ uninstall_xpad_noone() {
 install_linux_headers() {
     echo -e "\e[1mChecking for linux headers...\e[0m"
     echo ""
-    linux=$(pacman -Qsq linux-neptune | grep -e "[0-9]$" | tail -n 1)
+    linux=$(latest_neptune_pkg)
     kernel_headers="$linux-headers"
 
     # 0 = true (remove), 1 = false (skip removal)
