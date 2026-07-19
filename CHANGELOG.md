@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.13.1
+
+ - Detect the latest kernel package via a single shared helper instead of duplicated queries, and drop the hard-coded fallback version in the kernel headers mismatch error message
+ - Fix "Installation Incomplete" message printing an empty package name when the kernel upgrade prompt was cancelled
+
 ### 0.13.0
 
  - Add an automated workaround for mismatched kernel headers. This should help people with [#1](https://github.com/SavageCore/xone-steam-deck-installer/issues/1)
