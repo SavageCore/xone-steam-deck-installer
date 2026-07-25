@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.13.2
+
+ - Fix headers being installed for the wrong kernel package on SteamOS preview/beta builds (e.g. `-drm-exec`), causing an unbreakable DKMS "kernel headers mismatch" reboot loop ([#1](https://github.com/SavageCore/xone-steam-deck-installer/issues/1)). Kernel package is now derived from the actual running kernel via `pkgbase` instead of guessing the latest installed `linux-neptune-N`
+ - Fail with a clear message instead of rebooting when no headers package exists for the running kernel
+
 ### 0.13.1
 
  - Detect the latest kernel package via a single shared helper instead of duplicated queries, and drop the hard-coded fallback version in the kernel headers mismatch error message
