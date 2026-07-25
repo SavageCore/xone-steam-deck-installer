@@ -71,9 +71,13 @@ compare_semver() {
     echo "0"
 }
 
-# latest_neptune_pkg: echo the latest installed linux-neptune kernel package
-latest_neptune_pkg() {
-    pacman -Qsq linux-neptune | grep -E "^linux-neptune-[0-9]+$" | tail -n 1
+# running_kernel_pkg: echo the package providing the currently running kernel
+running_kernel_pkg() {
+    # pkgbase is written by every Arch-style kernel package into its modules dir;
+    # this is what pins us to the exact booted kernel (stable, drm-exec, etc.)
+    # ponytail: regex fallback below only for the rare image missing pkgbase
+    cat "/usr/lib/modules/$(uname -r)/pkgbase" 2>/dev/null ||
+        pacman -Qsq linux-neptune | grep -E "^linux-neptune-[0-9]+$" | tail -n 1
 }
 
 # Check for kernel header mismatch and offer workaround
@@ -95,9 +99,9 @@ check_kernel_header_mismatch() {
         echo "3. Re-run this installer"
         echo ""
 
-        # Get the latest installed linux-neptune package name
+        # Get the package providing the currently running kernel
         local linux_pkg
-        linux_pkg=$(latest_neptune_pkg)
+        linux_pkg=$(running_kernel_pkg)
 
         # Prompt user to apply the fix
         if zenity --question --title="Kernel Headers Mismatch" \
@@ -110,6 +114,16 @@ check_kernel_header_mismatch() {
             if [ -n "$linux_pkg" ]; then
                 if [[ $DEBUG == "true" ]]; then
                     echo "Upgrading package: $linux_pkg"
+                fi
+
+                # If the running kernel's own package has no update available,
+                # reinstalling and rebooting changes nothing - that's the loop
+                # issue #1 reporters hit. Bail with the real explanation instead.
+                if ! pacman -Qu "$linux_pkg" >/dev/null 2>&1; then
+                    echo -e "\e[1;31mThe running kernel package is already up to date.\e[0m"
+                    zenity --error --title="Headers Unavailable" \
+                        --text="Your running kernel is:\n$(uname -r)\n\nNo newer $linux_pkg package is available, so a reboot will not fix this.\n\nThis usually means you're on a SteamOS preview/beta kernel without a matching headers package yet.\nTry switching back to the stable SteamOS update channel, reboot, then re-run this installer."
+                    exit 1
                 fi
 
                 if sudo pacman -S "$linux_pkg" --noconfirm; then
@@ -255,7 +269,7 @@ uninstall_xpad_noone() {
 install_linux_headers() {
     echo -e "\e[1mChecking for linux headers...\e[0m"
     echo ""
-    linux=$(latest_neptune_pkg)
+    linux=$(running_kernel_pkg)
     kernel_headers="$linux-headers"
 
     # 0 = true (remove), 1 = false (skip removal)
@@ -285,6 +299,15 @@ install_linux_headers() {
     echo -e "\e[1mInstalling required kernel headers, this may take a while...\e[0m"
     echo ""
     eval sudo pacman -Sy "$kernel_headers" --noconfirm >/dev/null
+
+    # A reboot can't fix a headers package that doesn't exist for this kernel
+    # (e.g. a SteamOS preview/beta kernel with no matching -headers package yet).
+    # Fail fast here instead of letting DKMS fail and loop on the reboot workaround.
+    if [ ! -d "/usr/lib/modules/$(uname -r)/build" ]; then
+        zenity --error --title="Kernel Headers Unavailable" \
+            --text="No headers package is available for your running kernel:\n$(uname -r)\n\nThis usually means you're on a SteamOS preview/beta kernel.\nSwitch back to the stable SteamOS update channel, reboot, then re-run this installer."
+        exit 1
+    fi
 }
 
 install_base_devel() {
